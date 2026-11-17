@@ -1,0 +1,43 @@
+name: Release
+
+
+on:
+  push:
+    tags: ["v*"]
+
+
+permissions:
+  contents: write
+
+jobs:
+  extension:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: extension/package-lock.json
+      - run: npm ci && npm run build
+        working-directory: extension
+      - name: Pack 
+        run: | 
+          cd extension/dist
+          zip -r ../../extension-${{ github.ref_name }}.zip .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: extension
+          path: extension-*.zip
+
+  release:
+    needs: [extension]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: 
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: "*.zip"
+          generate_release_notes: true
